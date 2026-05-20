@@ -27,7 +27,11 @@ class PostgresAdapter(DatabaseAdapter):
         self._pool: asyncpg.Pool | None = None
 
     async def connect(self) -> None:
-        self._pool = await asyncpg.create_pool(self._dsn, init=_init_connection)
+        self._pool = await asyncpg.create_pool(
+            self._dsn,
+            init=_init_connection,
+            statement_cache_size=0,
+        )
 
     async def close(self) -> None:
         if self._pool:
