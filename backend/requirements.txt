@@ -7,4 +7,5 @@ supabase
 asyncpg
 beautifulsoup4
 anthropic
+google-genai
 python-jose[cryptography]

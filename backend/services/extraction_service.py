@@ -4,6 +4,8 @@ from typing import Optional, cast
 import anthropic
 import httpx
 from bs4 import BeautifulSoup
+from google import genai
+from google.genai import types
 
 from models.domain import ExtractedRecipe, IngredientDomain, RecipeStepDomain
 from models.request import RecipeRequest
@@ -74,6 +76,46 @@ class AnthropicAdapter(AIProvider):
         )
         tool_use = next(b for b in response.content if b.type == "tool_use")
         data = cast(dict, tool_use.input)
+        return ExtractedRecipe(
+            name=data["name"],
+            cooking_time=data.get("cooking_time"),
+            ingredients=[IngredientDomain(**i) for i in data["ingredients"]],
+            steps=[RecipeStepDomain(**s) for s in data["steps"]],
+        )
+
+
+class GeminiAdapter(AIProvider):
+    def __init__(self, api_key: str, model: str = "gemini-2.0-flash"):
+        self._client = genai.Client(api_key=api_key)
+        self._model = model
+        self._tool = types.Tool(
+            function_declarations=[
+                types.FunctionDeclaration(
+                    name=_EXTRACT_RECIPE_TOOL["name"],
+                    description=_EXTRACT_RECIPE_TOOL["description"],
+                    parameters=_EXTRACT_RECIPE_TOOL["input_schema"],
+                )
+            ]
+        )
+
+    async def extract_from_text(self, text: str) -> ExtractedRecipe:
+        response = await self._client.aio.models.generate_content(
+            model=self._model,
+            contents=f"Extract the recipe from this text:\n\n{text}",
+            config=types.GenerateContentConfig(
+                tools=[self._tool],
+                tool_config=types.ToolConfig(
+                    function_calling_config=types.FunctionCallingConfig(
+                        mode="ANY",
+                        allowed_function_names=["save_recipe"],
+                    )
+                ),
+            ),
+        )
+        function_call = next(
+            p.function_call for p in response.candidates[0].content.parts if p.function_call
+        )
+        data = cast(dict, dict(function_call.args))
         return ExtractedRecipe(
             name=data["name"],
             cooking_time=data.get("cooking_time"),

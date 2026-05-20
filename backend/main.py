@@ -11,12 +11,12 @@ from controllers.user_controller import router as user_router
 from dao.database_adapter import PostgresAdapter
 from dao.recipe_dao import RecipeDao
 from dao.user_dao import UserDao
-from services.extraction_service import AnthropicAdapter, ExtractionService
+from services.extraction_service import AnthropicAdapter, ExtractionService, GeminiAdapter
 
 adapter = PostgresAdapter(dsn=os.environ["DATABASE_URL"])
 RecipeDao.get_instance(adapter)
 UserDao.get_instance(adapter)
-ExtractionService.get_instance(AnthropicAdapter(api_key=os.environ["ANTHROPIC_API_KEY"]))
+ExtractionService.get_instance(GeminiAdapter(api_key=os.environ["GEMINI_API_KEY"]))
 
 
 @asynccontextmanager
