@@ -48,6 +48,32 @@ export function createRecipeFromUrl(url: string, token: string): Promise<Recipe>
   })
 }
 
+export async function createRecipeFromPdf(
+  fileUri: string,
+  fileName: string | undefined,
+  token: string,
+): Promise<Recipe> {
+  const formData = new FormData()
+  formData.append('file', {
+    uri: fileUri,
+    name: fileName ?? 'recipe.pdf',
+    type: 'application/pdf',
+  } as unknown as Blob)
+
+  const response = await fetch(`${API_BASE_URL}/api/recipe/pdf`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  })
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => response.statusText)
+    throw new Error(`API error ${response.status}: ${text}`)
+  }
+
+  return response.json()
+}
+
 export function deleteRecipe(id: string, token: string): Promise<void> {
   return request<void>(`/api/recipe/${id}`, token, { method: 'DELETE' })
 }

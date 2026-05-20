@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 
 from auth import get_current_user_id
 from models.domain import Recipe
-from models.request import RecipeRequest
+from models.request import RecipeRequest, SourceType
 from models.response import Ingredient, PaginatedRecipeResponse, RecipeResponse, RecipeStep, Unit
+from services.pdf_text_service import extract_text_from_pdf
 from services.recipe_service import RecipeService
 
 router = APIRouter(prefix="/recipe")
@@ -70,5 +71,20 @@ async def create_recipe(
     user_id: str = Depends(get_current_user_id),
     service: RecipeService = Depends(get_recipe_service),
 ):
+    recipe = await service.create_recipe(user_id, request)
+    return _to_response(recipe)
+
+
+@router.post("/pdf", response_model=RecipeResponse, status_code=200)
+async def create_recipe_from_pdf(
+    file: UploadFile = File(...),
+    user_id: str = Depends(get_current_user_id),
+    service: RecipeService = Depends(get_recipe_service),
+):
+    pdf_bytes = await file.read()
+    text = await extract_text_from_pdf(pdf_bytes, file.filename or "recipe.pdf")
+    if not text.strip():
+        raise HTTPException(status_code=422, detail="No text could be extracted from the PDF")
+    request = RecipeRequest(recipe_text=text, source_type=SourceType.pdf)
     recipe = await service.create_recipe(user_id, request)
     return _to_response(recipe)

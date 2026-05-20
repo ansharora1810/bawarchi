@@ -3,23 +3,22 @@ import React, { useContext, useEffect, useRef, useState } from 'react'
 import { Animated, Text, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { AppStackParamList } from '../../App'
-import { createRecipeFromText, createRecipeFromUrl } from '../api/client'
+import { createRecipeFromPdf, createRecipeFromText, createRecipeFromUrl } from '../api/client'
 import { AuthContext } from '../lib/AuthContext'
 import { SourceType } from '../types/recipe'
 
 type Props = NativeStackScreenProps<AppStackParamList, 'RecipeProcessing'>
 
-const UNSUPPORTED_SOURCES: SourceType[] = ['pdf', 'image', 'audio', 'video']
+const UNSUPPORTED_SOURCES: SourceType[] = ['image', 'audio', 'video']
 
 const UNSUPPORTED_MESSAGES: Partial<Record<SourceType, string>> = {
-  pdf: 'PDF text extraction is not yet supported in this build.',
   image: 'Image OCR is not yet supported in this build.',
   audio: 'Audio transcription is not yet supported in this build.',
   video: 'Video transcription is not yet supported in this build.',
 }
 
 export default function RecipeProcessingScreen({ route, navigation }: Props) {
-  const { sourceType, url, fileUri } = route.params
+  const { sourceType, url, fileUri, fileName } = route.params
   const { token } = useContext(AuthContext)
 
   const [phase, setPhase] = useState<'extracting' | 'processing' | 'error'>('extracting')
@@ -63,6 +62,16 @@ export default function RecipeProcessingScreen({ route, navigation }: Props) {
         setPhaseHint('Fetching recipe from URL…')
         setPhase('processing')
         const recipe = await createRecipeFromUrl(url, token)
+        pulseLoop.current?.stop()
+        navigation.replace('RecipeDetail', { recipe })
+        return
+      }
+
+      if (sourceType === 'pdf') {
+        if (!fileUri) throw new Error('No PDF file provided.')
+        setPhaseHint('Extracting text from PDF…')
+        setPhase('processing')
+        const recipe = await createRecipeFromPdf(fileUri, fileName, token)
         pulseLoop.current?.stop()
         navigation.replace('RecipeDetail', { recipe })
         return
