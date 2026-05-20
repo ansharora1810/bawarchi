@@ -85,7 +85,7 @@ class AnthropicAdapter(AIProvider):
 
 
 class GeminiAdapter(AIProvider):
-    def __init__(self, api_key: str, model: str = "gemini-2.0-flash"):
+    def __init__(self, api_key: str, model: str = "gemini-2.5-flash-lite"):
         self._client = genai.Client(api_key=api_key)
         self._model = model
         self._tool = types.Tool(
