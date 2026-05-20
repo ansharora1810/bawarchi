@@ -1,3 +1,4 @@
+import json
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -10,13 +11,23 @@ class DatabaseAdapter(ABC):
         ...
 
 
+async def _init_connection(conn: asyncpg.Connection) -> None:
+    for type_name in ("json", "jsonb"):
+        await conn.set_type_codec(
+            type_name,
+            encoder=json.dumps,
+            decoder=json.loads,
+            schema="pg_catalog",
+        )
+
+
 class PostgresAdapter(DatabaseAdapter):
     def __init__(self, dsn: str):
         self._dsn = dsn
         self._pool: asyncpg.Pool | None = None
 
     async def connect(self) -> None:
-        self._pool = await asyncpg.create_pool(self._dsn)
+        self._pool = await asyncpg.create_pool(self._dsn, init=_init_connection)
 
     async def close(self) -> None:
         if self._pool:

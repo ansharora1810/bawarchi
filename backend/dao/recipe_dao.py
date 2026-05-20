@@ -1,4 +1,3 @@
-import json
 from typing import Any, Optional
 
 from dao.database_adapter import DatabaseAdapter
@@ -69,8 +68,8 @@ class RecipeDao:
                 recipe.id,
                 recipe.user_id,
                 recipe.name,
-                json.dumps([i.__dict__ for i in recipe.ingredients]),
-                json.dumps([s.__dict__ for s in recipe.steps]),
+                [i.__dict__ for i in recipe.ingredients],
+                [s.__dict__ for s in recipe.steps],
                 recipe.cooking_time,
             ),
         )
